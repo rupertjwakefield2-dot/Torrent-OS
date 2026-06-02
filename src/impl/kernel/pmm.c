@@ -99,6 +99,22 @@ void pmm_init(uint32_t mb_addr) {
     }
 }
 
+/* ── fixed-range init for ARM64 (no multiboot2) ── */
+void pmm_init_fixed(uint64_t mem_start, uint64_t mem_end) {
+    for (size_t i = 0; i < MAX_FRAMES / 8; i++) bitmap[i] = 0xFF;
+    total = 0; free_count = 0;
+    uint64_t base  = (mem_start + PAGE_SIZE - 1) & ~(uint64_t)(PAGE_SIZE - 1);
+    uint64_t limit = mem_end & ~(uint64_t)(PAGE_SIZE - 1);
+    for (uint64_t a = base; a < limit; a += PAGE_SIZE) {
+        size_t frame = (size_t)(a / PAGE_SIZE);
+        if (frame < MAX_FRAMES) {
+            bm_clear(frame);
+            total++;
+            free_count++;
+        }
+    }
+}
+
 uint64_t pmm_alloc(void) {
     for (size_t i = 0; i < MAX_FRAMES; i++) {
         if (!bm_test(i)) {
