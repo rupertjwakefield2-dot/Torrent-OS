@@ -8,6 +8,19 @@ targets/x86_64/iso/boot/torrentos-ker.bin
 *.vdi
 *.vmdk
 
+# Object / binary files
+*.o
+*.ko
+*.obj
+*.elf
+*.bin
+*.exe
+*.out
+*.a
+*.lib
+*.so
+*.dll
+
 # OS / editor noise
 .DS_Store
 Thumbs.db
