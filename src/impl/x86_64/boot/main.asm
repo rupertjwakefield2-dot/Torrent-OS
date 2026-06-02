@@ -1,5 +1,6 @@
 global start
 global multiboot_info_ptr
+global boot_pml4_phys        ; physical address of PML4, exported for VMM
 
 extern long_mode_start
 
@@ -86,6 +87,7 @@ setup_page_tables:
 
 enable_paging:
     mov eax, pml4
+    mov [boot_pml4_phys], eax   ; save PML4 physical addr for VMM
     mov cr3, eax
 
     mov eax, cr4
@@ -121,6 +123,10 @@ pd:           resb 4096
 stack_bottom: resb 4096 * 4  ; 16 KB kernel stack
 stack_top:
 multiboot_info_ptr: resd 1
+
+section .data
+align 8
+boot_pml4_phys: dq 0         ; filled by enable_paging
 
 ; ── minimal 64-bit GDT (null + code + data) ──────────────
 

@@ -1,17 +1,19 @@
 #include "idt.h"
 #include "print.h"
 #include "io.h"
+#include "timer.h"
+#include "keyboard.h"
+#include "proc.h"
+#include "lapic.h"
 
-/* ── IDT table ───────────────────────────────────────────── */
-
-static IDTEntry  idt[256];
+/* ── IDT table ── */
+static IDTEntry   idt[256];
 static IDTPointer idt_ptr;
-
-extern uint64_t isr_stubs[48];  /* defined in isr.asm */
+extern uint64_t   isr_stubs[48];
 
 static void idt_set_gate(uint8_t n, uint64_t handler) {
     idt[n].offset_low  = (uint16_t)(handler & 0xFFFF);
-    idt[n].selector    = 0x08;   /* kernel code segment */
+    idt[n].selector    = 0x08;
     idt[n].ist         = 0;
     idt[n].type_attr   = 0x8E;   /* present, DPL=0, 64-bit interrupt gate */
     idt[n].offset_mid  = (uint16_t)((handler >> 16) & 0xFFFF);
@@ -19,33 +21,23 @@ static void idt_set_gate(uint8_t n, uint64_t handler) {
     idt[n].zero        = 0;
 }
 
-/* ── 8259A PIC remapping ─────────────────────────────────── */
-
+/* ── 8259A PIC remap ── */
 static void pic_remap(void) {
-    outb(0x20, 0x11); outb(0xA0, 0x11); io_wait();  /* init */
-    outb(0x21, 0x20); outb(0xA1, 0x28); io_wait();  /* vector offsets */
-    outb(0x21, 0x04); outb(0xA1, 0x02); io_wait();  /* cascade wiring */
-    outb(0x21, 0x01); outb(0xA1, 0x01); io_wait();  /* 8086 mode */
-    /* unmask IRQ0 (timer) and IRQ1 (keyboard), mask everything else */
+    outb(0x20, 0x11); outb(0xA0, 0x11); io_wait();
+    outb(0x21, 0x20); outb(0xA1, 0x28); io_wait();
+    outb(0x21, 0x04); outb(0xA1, 0x02); io_wait();
+    outb(0x21, 0x01); outb(0xA1, 0x01); io_wait();
+    /* unmask IRQ0 (timer) + IRQ1 (keyboard), mask everything else */
     outb(0x21, 0xFC);
     outb(0xA1, 0xFF);
 }
 
-/* ── init ────────────────────────────────────────────────── */
-
-void idt_init(void) {
-    for (int i = 0; i < 256; i++) idt[i] = (IDTEntry){0};
-    for (int i = 0; i < 48;  i++) idt_set_gate((uint8_t)i, isr_stubs[i]);
-
-    idt_ptr.limit = sizeof(idt) - 1;
-    idt_ptr.base  = (uint64_t)&idt;
-    __asm__ volatile("lidt %0" : : "m"(idt_ptr));
-
-    pic_remap();
+static void pic_eoi(uint8_t irq) {
+    if (irq >= 8) outb(0xA0, 0x20);
+    outb(0x20, 0x20);
 }
 
-/* ── exception names ─────────────────────────────────────── */
-
+/* ── exception names ── */
 static const char *exc_name[32] = {
     "Divide-by-Zero",       "Debug",
     "NMI",                  "Breakpoint",
@@ -65,13 +57,25 @@ static const char *exc_name[32] = {
     "Security Exception",   "Reserved",
 };
 
-/* ── dispatch: called from isr_common in isr.asm ────────── */
+void idt_init(void) {
+    for (int i = 0; i < 256; i++) idt[i] = (IDTEntry){0};
+    for (int i = 0; i < 48;  i++) idt_set_gate((uint8_t)i, isr_stubs[i]);
 
-void interrupt_handler(InterruptFrame *f) {
+    idt_ptr.limit = sizeof(idt) - 1;
+    idt_ptr.base  = (uint64_t)(uintptr_t)&idt;
+    __asm__ volatile("lidt %0" : : "m"(idt_ptr));
+
+    pic_remap();
+}
+
+/* ── main interrupt dispatcher — returns new RSP or 0 ── */
+uint64_t interrupt_handler(InterruptFrame *f) {
+    uint64_t new_rsp = 0;
+
     if (f->int_no < 32) {
-        /* CPU exception — print a panic screen and halt */
+        /* ── CPU exception: red panic screen ── */
         print_set_color(COLOR_WHITE, COLOR_RED);
-        print_clear_row(0, COLOR_WHITE, COLOR_RED);  /* overwrite status bar */
+        print_clear_row(0, COLOR_WHITE, COLOR_RED);
         print_clear();
         print_str("  TORRENTOS KERNEL PANIC\n\n");
         print_str("  Exception : "); print_str(exc_name[f->int_no]); print_newline();
@@ -80,23 +84,35 @@ void interrupt_handler(InterruptFrame *f) {
         print_str("  RIP       : "); print_hex(f->rip);               print_newline();
         print_str("  RSP       : "); print_hex(f->rsp);               print_newline();
         print_str("  RFLAGS    : "); print_hex(f->rflags);            print_newline();
+        print_str("  Task      : ");
+        Task *ct = proc_current();
+        if (ct) { print_str(ct->name); print_str("  PID ");
+                  print_uint(ct->pid); }
+        else      print_str("(none)");
+        print_newline();
         print_str("\n  System halted. Reset to continue.\n");
         cpu_cli();
         for (;;) cpu_halt();
     }
 
-    /* IRQ dispatch */
     uint8_t irq = (uint8_t)(f->int_no - 32);
 
-    if (irq == 0) {
-        extern void timer_tick(void);
-        timer_tick();
-    } else if (irq == 1) {
-        extern void keyboard_irq(void);
-        keyboard_irq();
+    switch (irq) {
+        case 0:   /* PIT timer */
+            timer_tick();
+            new_rsp = proc_tick((uint64_t)(uintptr_t)f);
+            break;
+        case 1:   /* PS/2 keyboard */
+            keyboard_irq();
+            break;
+        default:
+            break;
     }
 
-    /* send EOI */
-    if (irq >= 8) outb(0xA0, 0x20);
-    outb(0x20, 0x20);
+    /* send EOI — prefer LAPIC if present, else fall back to PIC */
+    if (lapic_present())
+        lapic_eoi();
+    pic_eoi(irq);   /* always send PIC EOI too when using PIC routing */
+
+    return new_rsp;
 }

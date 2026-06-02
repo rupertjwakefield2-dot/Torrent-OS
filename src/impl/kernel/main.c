@@ -17,6 +17,10 @@
 #include "config.h"
 #include "vfs.h"
 #include "cpuid.h"
+#include "vmm.h"
+#include "proc.h"
+#include "syscall.h"
+#include "lapic.h"
 
 /* 1-second timer callback — refresh status bar clock */
 static void on_second(void) {
@@ -69,11 +73,24 @@ void kernel_main(uint32_t mb_addr) {
     auth_init();
     vfs_init();
     cpuid_init();
-    /* show CPU brand */
     const CpuInfo *ci = cpuid_info();
     print_str("  [ok] CPU     ");
     print_str(ci->brand);
     print_str(ci->has_x86_64 ? "  [x86_64]\n" : "  [32-bit]\n");
+
+    /* ── advanced kernel subsystems ── */
+    lapic_init();
+    print_str(lapic_present() ? "  [ok] LAPIC\n"
+                              : "  [--] LAPIC not present — using PIC only\n");
+
+    vmm_init();
+    print_str("  [ok] VMM (virtual memory manager)\n");
+
+    proc_init();
+    print_str("  [ok] Scheduler (preemptive round-robin)\n");
+
+    syscall_init();
+    print_str("  [ok] Syscall interface (SYSCALL/SYSRET)\n");
 
     /* ── ATA storage ── */
     if (ata_init()) {

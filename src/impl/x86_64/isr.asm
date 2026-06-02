@@ -79,8 +79,14 @@ isr_common:
     push r14
     push r15
 
-    mov rdi, rsp        ; first arg = pointer to InterruptFrame
-    call interrupt_handler
+    mov  rdi, rsp           ; arg0 = InterruptFrame*
+    call interrupt_handler  ; returns: 0 = no switch, else = new task RSP
+
+    ; if non-zero, switch to new task's kernel stack
+    test rax, rax
+    jz   .no_switch
+    mov  rsp, rax           ; ← context switch happens here
+.no_switch:
 
     pop r15
     pop r14
@@ -98,7 +104,7 @@ isr_common:
     pop rbx
     pop rax
 
-    add rsp, 16         ; discard int_no + err_code
+    add rsp, 16             ; discard int_no + err_code
     iretq
 
 ; ── stub address table (used by idt_init) ───────────────

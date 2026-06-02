@@ -18,6 +18,9 @@
 #include "ata.h"
 #include "speaker.h"
 #include "cpuid.h"
+#include "proc.h"
+#include "vmm.h"
+#include "syscall.h"
 
 #define LINE_MAX  256
 #define HIST_SZ   16
@@ -29,8 +32,8 @@ static char cwd[128] = "/";
 static const char *cmd_list[] = {
     "apps", "battery", "bluetooth", "browser", "cat", "clear",
     "cpuinfo", "darkmode", "date", "echo", "halt", "help", "history",
-    "ls", "mem", "pwd", "reboot", "save", "settings", "sysinfo",
-    "timezone", "uptime", "ver", "whoami", "wifi",
+    "ls", "mem", "ps", "pwd", "reboot", "save", "settings", "sysinfo",
+    "timezone", "uptime", "ver", "vminfo", "whoami", "wifi",
     (void*)0
 };
 
@@ -226,6 +229,8 @@ static void cmd_help(void) {
         { "clear",         "clear the screen"                    },
         { "sysinfo",       "system information (neofetch-style)" },
         { "cpuinfo",       "CPU model, x64 features and flags"  },
+        { "ps",            "list running kernel tasks"           },
+        { "vminfo",        "virtual memory layout and stats"     },
         { "ver",           "OS version"                          },
         { "uptime",        "system uptime"                       },
         { "mem",           "memory usage with visual bar"        },
@@ -680,6 +685,42 @@ static void cmd_cpuinfo(void) {
     print_set_color(fg, bg);
 }
 
+static void cmd_ps(void) {
+    proc_list();
+}
+
+static void cmd_vminfo(void) {
+    Color acc = sh_acc(), dg = COLOR_DARK_GRAY, fg = sh_fg(), bg = sh_bg();
+    print_set_color(acc, bg); print_str("  Virtual Memory\n");
+    print_set_color(dg,  bg); print_str("  "); for(int i=0;i<46;i++) print_char('\xC4'); print_newline();
+
+    size_t total = pmm_total_frames() * 4096;
+    size_t free_ = pmm_free_frames()  * 4096;
+    size_t used  = total - free_;
+    print_set_color(dg,  bg); print_str("  Identity map   ");
+    print_set_color(fg,  bg); print_str("0x00000000 - 0x3FFFFFFF  (1 GB, 2MB pages)\n");
+
+    print_set_color(dg,  bg); print_str("  Page size      ");
+    print_set_color(fg,  bg); print_str("4 KB (fine-grained VMM)  +  2 MB (boot huge pages)\n");
+
+    print_set_color(dg,  bg); print_str("  Physical RAM   ");
+    print_set_color(fg,  bg);
+    print_uint(total / 1024 / 1024); print_str(" MB total  ");
+    print_uint(used  / 1024 / 1024); print_str(" MB used  ");
+    print_uint(free_ / 1024 / 1024); print_str(" MB free\n");
+
+    print_set_color(dg,  bg); print_str("  Paging mode    ");
+    print_set_color(COLOR_LIGHT_GREEN, bg);
+    print_str("x86_64 four-level (PML4 \xFA PDPT \xFA PD \xFA PT)\n");
+
+    print_set_color(dg,  bg); print_str("  NX support     ");
+    extern const CpuInfo *cpuid_info(void);
+    print_set_color(cpuid_info()->has_nx ? COLOR_LIGHT_GREEN : COLOR_LIGHT_RED, bg);
+    print_str(cpuid_info()->has_nx ? "Yes  (EFER.NXE enabled)\n" : "No\n");
+
+    print_set_color(fg, bg);
+}
+
 static void cmd_pwd(void) {
     print_set_color(sh_acc(), sh_bg());
     print_str("  "); print_str(cwd); print_newline();
@@ -793,6 +834,8 @@ static void dispatch(const char *line) {
     else if (str_eq(line, "clear"))          { print_set_color(sh_fg(), sh_bg()); print_clear(); desktop_redraw_bar(); }
     else if (str_eq(line, "sysinfo"))        cmd_sysinfo();
     else if (str_eq(line, "cpuinfo"))        cmd_cpuinfo();
+    else if (str_eq(line, "ps"))             cmd_ps();
+    else if (str_eq(line, "vminfo"))         cmd_vminfo();
     else if (str_eq(line, "ver"))            cmd_ver();
     else if (str_eq(line, "uptime"))         cmd_uptime();
     else if (str_eq(line, "mem"))            cmd_mem();

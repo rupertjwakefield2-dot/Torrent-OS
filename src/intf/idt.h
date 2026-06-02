@@ -24,4 +24,5 @@ typedef struct {
     uint64_t rip, cs, rflags, rsp, ss;
 } InterruptFrame;
 
-void idt_init(void);
+void     idt_init(void);
+uint64_t interrupt_handler(InterruptFrame *f);  /* called from isr.asm */
