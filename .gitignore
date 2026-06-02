@@ -1,0 +1,17 @@
+# Build artefacts
+build/
+dist/
+targets/x86_64/iso/boot/torrentos-ker.bin
+
+# Disk images
+*.img
+*.vdi
+*.vmdk
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/

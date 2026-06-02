@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TorrentOS — A Custom 64-bit Operating System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── NAV ── -->
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-logo">TorrentOS</span>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#build">Build</a>
+        <a href="#commands">Commands</a>
+        <a href="https://github.com/rupertjwakefield2/torrentos" target="_blank" class="btn-outline">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="badge">v0.1-dev · x86_64 · Bare Metal</div>
+      <h1>TorrentOS</h1>
+      <p class="hero-sub">
+        A fully independent 64-bit operating system written from scratch in C and NASM.<br>
+        No Linux. No Arch. Pure bare-metal engineering.
+      </p>
+      <div class="hero-btns">
+        <a href="https://github.com/rupertjwakefield2/torrentos" class="btn-primary" target="_blank">View on GitHub</a>
+        <a href="#build" class="btn-secondary">Build It</a>
+      </div>
+    </div>
+    <!-- terminal preview -->
+    <div class="terminal-wrap">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span class="terminal-title">TorrentOS v0.1-dev</span>
+        </div>
+        <div class="terminal-body">
+          <div class="term-statusbar">  TorrentOS<span class="term-right">rupert  14:32  AC </span></div>
+          <div class="term-line"><span class="term-user">rupert</span><span class="term-at">@torrentos:</span><span class="term-dir">~</span><span class="term-pct"> % </span><span class="term-cmd">sysinfo</span></div>
+          <div class="term-sysinfo">
+            <pre>  ╔══════════════════════════════════════════════════════════════════════════════╗
+  ║ TorrentOS  ·  v0.1-dev  ·  x86_64                                          ║
+  ╠══════════════════════════════════════════════════════════════════════════════╣
+  ║ User     rupert@torrentos       Theme    Dark Mode                          ║
+  ║ Date     02/06/2026             Power    AC                                 ║
+  ║ Time     14:32                  WiFi     Not detected                       ║
+  ║ Uptime   0h 5m 12s              BT       Not detected                       ║
+  ╠──────────────────────────────────────────────────────────────────────────────╣
+  ║ RAM  [████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  45 MB / 256 MB  17%  ║
+  ╚══════════════════════════════════════════════════════════════════════════════╝</pre>
+          </div>
+          <div class="term-line"><span class="term-user">rupert</span><span class="term-at">@torrentos:</span><span class="term-dir">~</span><span class="term-pct"> % </span><span class="term-cursor">█</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section id="features" class="section features">
+    <div class="section-inner">
+      <h2>What's Inside</h2>
+      <p class="section-sub">Every line of code written from scratch — no Linux kernel, no libc, no shortcuts.</p>
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">⚙️</div>
+          <h3>Custom Kernel</h3>
+          <p>x86_64 long mode, multiboot2, custom GDT, IDT with full exception handling, PIC remapping, and PIT timer at 1 kHz.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💾</div>
+          <h3>Memory Management</h3>
+          <p>Bitmap physical memory manager supporting up to 256 MB, kernel heap with kmalloc/kfree and block coalescing.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>Login &amp; Auth</h3>
+          <p>First-boot setup wizard (username, timezone, password). Login screen with 10-attempt lockout. Persistent config saved to ATA disk.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🖥️</div>
+          <h3>macOS-Style UI</h3>
+          <p>Status bar with live clock, dark and light themes, CP437 box-drawing UI components, colour-coded shell output.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>Text Browser</h3>
+          <p>Built-in browser with URL bar, scrollable pages, and about: protocol — about:home, about:help, about:system.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">💿</div>
+          <h3>ATA Storage</h3>
+          <p>PIO-mode ATA driver for reading and writing 512-byte sectors. Config persists across reboots when a hard disk is attached.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">📂</div>
+          <h3>Virtual Filesystem</h3>
+          <p>Read-only ramdisk VFS with ls and cat — /etc, /proc, /boot, and /readme.txt compiled into the kernel.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🔊</div>
+          <h3>PC Speaker</h3>
+          <p>PIT channel 2 speaker driver. Boot chime, configurable beeps. No audio card needed — uses the original IBM PC speaker.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── BUILD ── -->
+  <section id="build" class="section build">
+    <div class="section-inner">
+      <h2>Build &amp; Run</h2>
+      <p class="section-sub">One Docker container, one make command. Works on Windows, macOS, and Linux.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h3>Clone the repo</h3>
+            <pre><code>git clone https://github.com/rupertjwakefield2/torrentos.git
+cd torrentos</code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h3>Build the Docker environment</h3>
+            <pre><code>docker build -t torrentos-buildenv buildenv/</code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h3>Compile the OS</h3>
+            <pre><code>docker run --rm -it -v $(pwd):/root/env torrentos-buildenv
+# inside the container:
+make build-x86_64
+exit</code></pre>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h3>Boot in QEMU</h3>
+            <pre><code># without persistence
+qemu-system-x86_64 \
+  -drive file=dist/x86_64/TorrentOS.iso,format=raw,media=cdrom,readonly=on \
+  -boot d -m 256M
+
+# with persistent storage
+qemu-img create -f raw torrentos.img 64M
+qemu-system-x86_64 \
+  -drive file=dist/x86_64/TorrentOS.iso,format=raw,media=cdrom,readonly=on \
+  -drive file=torrentos.img,format=raw \
+  -boot d -m 256M</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── COMMANDS ── -->
+  <section id="commands" class="section commands">
+    <div class="section-inner">
+      <h2>Shell Commands</h2>
+      <p class="section-sub">Type <code>help</code> in the shell, or press <kbd>Tab</kbd> to autocomplete.</p>
+      <div class="cmd-grid">
+        <div class="cmd-group">
+          <h3>System</h3>
+          <table>
+            <tr><td><code>sysinfo</code></td><td>Neofetch-style info panel</td></tr>
+            <tr><td><code>ver</code></td><td>OS version</td></tr>
+            <tr><td><code>uptime</code></td><td>System uptime</td></tr>
+            <tr><td><code>mem</code></td><td>Memory with visual bar</td></tr>
+            <tr><td><code>date</code></td><td>Date, time &amp; timezone</td></tr>
+            <tr><td><code>whoami</code></td><td>Current user</td></tr>
+            <tr><td><code>history</code></td><td>Command history</td></tr>
+          </table>
+        </div>
+        <div class="cmd-group">
+          <h3>Files</h3>
+          <table>
+            <tr><td><code>ls [dir]</code></td><td>List directory</td></tr>
+            <tr><td><code>cat &lt;file&gt;</code></td><td>Print file</td></tr>
+            <tr><td><code>pwd</code></td><td>Working directory</td></tr>
+            <tr><td><code>save</code></td><td>Save config to disk</td></tr>
+          </table>
+        </div>
+        <div class="cmd-group">
+          <h3>Hardware</h3>
+          <table>
+            <tr><td><code>wifi</code></td><td>WiFi adapter (PCI scan)</td></tr>
+            <tr><td><code>bluetooth</code></td><td>Bluetooth adapter</td></tr>
+            <tr><td><code>battery</code></td><td>Power status</td></tr>
+            <tr><td><code>timezone [±N]</code></td><td>Set UTC offset</td></tr>
+          </table>
+        </div>
+        <div class="cmd-group">
+          <h3>Apps</h3>
+          <table>
+            <tr><td><code>browser</code></td><td>Text browser</td></tr>
+            <tr><td><code>apps</code></td><td>App store / launcher</td></tr>
+            <tr><td><code>darkmode</code></td><td>Toggle theme</td></tr>
+            <tr><td><code>settings</code></td><td>Settings panel</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ROADMAP ── -->
+  <section class="section roadmap">
+    <div class="section-inner">
+      <h2>Roadmap</h2>
+      <div class="roadmap-grid">
+        <div class="roadmap-item done">
+          <span class="check">✓</span>
+          <div><strong>Stage 0</strong> — Boot, GDT, IDT, long mode</div>
+        </div>
+        <div class="roadmap-item done">
+          <span class="check">✓</span>
+          <div><strong>Stage 1</strong> — PMM, heap, keyboard, timer, shell</div>
+        </div>
+        <div class="roadmap-item done">
+          <span class="check">✓</span>
+          <div><strong>Stage 2</strong> — Login, install wizard, desktop UI, browser</div>
+        </div>
+        <div class="roadmap-item done">
+          <span class="check">✓</span>
+          <div><strong>Stage 3</strong> — ATA driver, VFS, PC speaker, persistence</div>
+        </div>
+        <div class="roadmap-item">
+          <span class="check soon">→</span>
+          <div><strong>Stage 4</strong> — FAT16/32 filesystem, full file read/write</div>
+        </div>
+        <div class="roadmap-item">
+          <span class="check soon">→</span>
+          <div><strong>Stage 5</strong> — RTL8139 network driver, basic TCP/UDP</div>
+        </div>
+        <div class="roadmap-item">
+          <span class="check soon">→</span>
+          <div><strong>Stage 6</strong> — VGA framebuffer, graphics mode</div>
+        </div>
+        <div class="roadmap-item">
+          <span class="check soon">→</span>
+          <div><strong>Stage 7</strong> — Ring-3 userspace, syscalls, ELF loader</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-inner">
+      <span>TorrentOS &copy; 2026</span>
+      <span>Built with C + NASM · No Linux</span>
+      <a href="https://github.com/rupertjwakefield2/torrentos" target="_blank">GitHub ↗</a>
+    </div>
+  </footer>
+
+</body>
+</html>
