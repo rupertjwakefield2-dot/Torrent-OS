@@ -17,6 +17,7 @@
 #include "config.h"
 #include "ata.h"
 #include "speaker.h"
+#include "cpuid.h"
 
 #define LINE_MAX  256
 #define HIST_SZ   16
@@ -27,7 +28,7 @@ static char cwd[128] = "/";
 /* ── sorted command list (tab completion) ── */
 static const char *cmd_list[] = {
     "apps", "battery", "bluetooth", "browser", "cat", "clear",
-    "darkmode", "date", "echo", "halt", "help", "history",
+    "cpuinfo", "darkmode", "date", "echo", "halt", "help", "history",
     "ls", "mem", "pwd", "reboot", "save", "settings", "sysinfo",
     "timezone", "uptime", "ver", "whoami", "wifi",
     (void*)0
@@ -224,6 +225,7 @@ static void cmd_help(void) {
         { "help",          "show this list"                      },
         { "clear",         "clear the screen"                    },
         { "sysinfo",       "system information (neofetch-style)" },
+        { "cpuinfo",       "CPU model, x64 features and flags"  },
         { "ver",           "OS version"                          },
         { "uptime",        "system uptime"                       },
         { "mem",           "memory usage with visual bar"        },
@@ -376,7 +378,7 @@ static void cmd_sysinfo(void) {
     Color acc = sh_acc(), fg = sh_fg(), bg = sh_bg();
     Color dg  = COLOR_DARK_GRAY;
 
-    uint8_t bx = 1, bw = 78, bh = 12;
+    uint8_t bx = 1, bw = 78, bh = 13;
     /* place box one line below current cursor */
     print_newline();
     uint8_t by = print_row();
@@ -408,6 +410,11 @@ static void cmd_sysinfo(void) {
     char ubuf[AUTH_USER_MAX + 12] = "";
     str_cat(ubuf, auth_username, sizeof(ubuf));
     str_cat(ubuf, "@torrentos", sizeof(ubuf));
+    const CpuInfo *ci = cpuid_info();
+    /* trim brand to fit in box column (max ~28 chars) */
+    char cpubuf[30];
+    str_cpy(cpubuf, ci->brand, sizeof(cpubuf));
+    SINFO_ROW("CPU      ", fg,  cpubuf);
     SINFO_ROW("User     ", acc, ubuf);
 
     char dbuf[12]; rtc_fmt_date(dbuf);
@@ -454,7 +461,7 @@ static void cmd_sysinfo(void) {
     #undef SINFO_RROW
 
     /* ── memory bar spanning full width ── */
-    uint8_t br = (uint8_t)(by + 7);
+    uint8_t br = (uint8_t)(by + 8);
     /* thin separator */
     for (int i = 1; i < bw - 1; i++)
         print_at((uint8_t)(bx + i), br, '\xC4', dg, bg);
@@ -605,6 +612,74 @@ static void cmd_battery(void) {
     print_set_color(sh_fg(), sh_bg());
 }
 
+/* ── helper: print "YES" / "no" feature flag ── */
+static void print_flag(const char *name, int on) {
+    if (on) {
+        print_set_color(COLOR_LIGHT_GREEN, sh_bg());
+        print_str(name);
+    } else {
+        print_set_color(COLOR_DARK_GRAY, sh_bg());
+        print_str(name);
+    }
+    print_set_color(sh_fg(), sh_bg());
+}
+
+static void cmd_cpuinfo(void) {
+    const CpuInfo *c = cpuid_info();
+    Color acc = sh_acc(), fg = sh_fg(), bg = sh_bg();
+
+    print_set_color(acc, bg); print_str("  CPU Information\n");
+    print_set_color(COLOR_DARK_GRAY, bg);
+    print_str("  "); for(int i=0;i<46;i++) print_char('\xC4'); print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Vendor    ");
+    print_set_color(fg, bg);              print_str(c->vendor); print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Model     ");
+    print_set_color(fg, bg);              print_str(c->brand);  print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Family    ");
+    print_set_color(fg, bg);              print_hex(c->family);
+    print_str("h  Model "); print_hex(c->model);
+    print_str("h  Stepping "); print_uint(c->stepping); print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Cores     ");
+    print_set_color(fg, bg);              print_uint(c->cores);
+    print_str(" logical\n");
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Mode      ");
+    print_set_color(c->has_x86_64 ? COLOR_LIGHT_GREEN : COLOR_LIGHT_RED, bg);
+    print_str(c->has_x86_64 ? "64-bit (x86_64 long mode)" : "32-bit only");
+    print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg);
+    print_str("  "); for(int i=0;i<46;i++) print_char('\xC4'); print_newline();
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("  Features  ");
+
+    print_flag("FPU ",    c->has_fpu);
+    print_flag("SSE ",    c->has_sse);
+    print_flag("SSE2 ",   c->has_sse2);
+    print_flag("SSE3 ",   c->has_sse3);
+    print_flag("SSSE3 ",  c->has_ssse3);
+    print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("            ");
+    print_flag("SSE4.1 ", c->has_sse41);
+    print_flag("SSE4.2 ", c->has_sse42);
+    print_flag("AVX ",    c->has_avx);
+    print_flag("AVX2 ",   c->has_avx2);
+    print_newline();
+
+    print_set_color(COLOR_DARK_GRAY, bg); print_str("            ");
+    print_flag("AES ",    c->has_aes);
+    print_flag("RDRAND ", c->has_rdrand);
+    print_flag("NX ",     c->has_nx);
+    print_flag("1GB-PG ", c->has_1gb_pages);
+    print_newline();
+
+    print_set_color(fg, bg);
+}
+
 static void cmd_pwd(void) {
     print_set_color(sh_acc(), sh_bg());
     print_str("  "); print_str(cwd); print_newline();
@@ -717,6 +792,7 @@ static void dispatch(const char *line) {
     if      (str_eq(line, "help"))           cmd_help();
     else if (str_eq(line, "clear"))          { print_set_color(sh_fg(), sh_bg()); print_clear(); desktop_redraw_bar(); }
     else if (str_eq(line, "sysinfo"))        cmd_sysinfo();
+    else if (str_eq(line, "cpuinfo"))        cmd_cpuinfo();
     else if (str_eq(line, "ver"))            cmd_ver();
     else if (str_eq(line, "uptime"))         cmd_uptime();
     else if (str_eq(line, "mem"))            cmd_mem();

@@ -16,6 +16,7 @@
 #include "ata.h"
 #include "config.h"
 #include "vfs.h"
+#include "cpuid.h"
 
 /* 1-second timer callback — refresh status bar clock */
 static void on_second(void) {
@@ -67,7 +68,12 @@ void kernel_main(uint32_t mb_addr) {
     pci_scan();
     auth_init();
     vfs_init();
-    print_str("  [ok] RTC, PCI, VFS\n");
+    cpuid_init();
+    /* show CPU brand */
+    const CpuInfo *ci = cpuid_info();
+    print_str("  [ok] CPU     ");
+    print_str(ci->brand);
+    print_str(ci->has_x86_64 ? "  [x86_64]\n" : "  [32-bit]\n");
 
     /* ── ATA storage ── */
     if (ata_init()) {

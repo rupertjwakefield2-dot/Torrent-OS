@@ -33,7 +33,8 @@ static const VfsFile files[] = {
         "/proc/cpuinfo",
         "Architecture : x86_64\n"
         "Mode         : 64-bit long mode\n"
-        "Paging       : 4-level PT, 2MB pages, 1GB identity map\n"
+        "Paging       : 4-level PT, 2MB huge pages, 1GB identity map\n"
+        "Note         : run 'cpuinfo' in the shell for live CPU details\n"
     },
     {
         "/proc/meminfo",
