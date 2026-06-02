@@ -9,7 +9,7 @@ static const VfsFile files[] = {
         "VERSION=0.1-dev\n"
         "ARCH=x86_64\n"
         "BUILD=C+NASM baremental\n"
-        "HOME_URL=https://github.com/rupertjwakefield2/torrentos\n"
+        "HOME_URL=https://github.com/rupertjwakefield2-dot/Torrent-OS\n"
     },
     {
         "/etc/hostname",
