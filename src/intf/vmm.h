@@ -32,5 +32,5 @@ void    vmm_free(uint64_t virt_base, uint64_t n);
 
 /* Flush the TLB for a single page */
 static inline void vmm_flush(uint64_t virt) {
-    __asm__ volatile("invlpg [%0]" : : "r"(virt) : "memory");
+    __asm__ volatile("invlpg (%0)" : : "r"(virt) : "memory");
 }
