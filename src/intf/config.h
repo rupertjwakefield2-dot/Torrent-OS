@@ -12,4 +12,4 @@
 int  config_load(void);   /* returns 1 if valid config read from disk */
 int  config_save(void);   /* returns 1 on success */
 void config_apply(void);  /* copy loaded values into auth/battery/rtc globals */
-void config_commit(void); /* copy current globals back to config buffer and save */
+int  config_commit(void); /* copy current globals back to config buffer and save; returns 1 on success */

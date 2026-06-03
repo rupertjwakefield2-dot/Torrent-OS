@@ -54,7 +54,7 @@ void config_apply(void) {
     battery_saver_set(cfg_buf[OFF_SAVER]);
 }
 
-void config_commit(void) {
+int config_commit(void) {
     /* copy globals → disk buffer, then save */
     write32(cfg_buf, CFG_MAGIC);
 
@@ -68,5 +68,5 @@ void config_commit(void) {
     cfg_buf[OFF_DARK]  = (uint8_t)auth_dark_mode;
     cfg_buf[OFF_SAVER] = (uint8_t)battery_saver_enabled();
 
-    config_save();
+    return config_save();
 }
